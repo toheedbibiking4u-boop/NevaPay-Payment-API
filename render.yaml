@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nexapay-payment-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: "*"
+      - key: PAYMENT_BASE_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
