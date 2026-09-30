@@ -32,6 +32,8 @@ async function db() {
 
 async function initDb() {
   if (!pool) return;
+
+  if (!pool) return;
   await pool.query(`
     CREATE TABLE IF NOT EXISTS payment_links (
       id TEXT PRIMARY KEY,
@@ -58,6 +60,13 @@ async function initDb() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`
+    ALTER TABLE payment_links
+    ADD COLUMN IF NOT EXISTS bnb_quote NUMERIC(36,18),
+    ADD COLUMN IF NOT EXISTS bnb_quote_rate NUMERIC(36,8),
+    ADD COLUMN IF NOT EXISTS bnb_quote_expires_at TIMESTAMPTZ
+  `);
+
 }
 
 app.get("/api/health", async (req, res) => {
@@ -74,7 +83,9 @@ app.post("/api/payment-links", async (req, res) => {
     const amount = cleanAmount(req.body.amount);
     const currency = String(req.body.currency || "PKR").toUpperCase().slice(0, 8);
     const description = String(req.body.description || "").slice(0, 240);
-    const methods = Array.isArray(req.body.methods) ? req.body.methods.slice(0, 20).map(x => String(x).slice(0, 40)) : [];
+    const methods = Array.isArray(req.body.methods) && req.body.methods.length
+      ? req.body.methods.slice(0, 20).map(x => String(x).slice(0, 40))
+      : ["bank_transfer", "card", "trust_wallet"];
     const linkId = id("PAY");
 
     const database = await db();
@@ -116,7 +127,7 @@ app.get("/pay/:id", async (req, res) => {
     const r = await database.query("SELECT * FROM payment_links WHERE id=$1", [req.params.id]);
     if (!r.rowCount) return res.status(404).send("Payment link not found");
     const p = r.rows[0];
-    const methods = Array.isArray(p.methods) ? p.methods : [];
+    const methods = [...(Array.isArray(p.methods) ? p.methods : []), "trust_wallet"].filter((v,i,a) => a.indexOf(v) === i);
     const methodHtml = methods.map(m => `<option>${escapeHtml(m)}</option>`).join("");
     res.type("html").send(`<!doctype html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -132,19 +143,488 @@ small{color:#9bb}
 <h1>NexaPay</h1><div>Secure payment request</div>
 <div class="amount">${escapeHtml(String(p.amount))} ${escapeHtml(p.currency)}</div>
 ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
-<label>Payment method<select id="method">${methodHtml || "<option>Provider checkout</option>"}</select></label>
-<button onclick="start()">Continue to secure checkout</button>
-<p><small>This page does not collect or store card numbers or CVV. A real payment is completed through the configured payment provider.</small></p>
+<label>Payment method
+<select id="method" onchange="showMethod()">
+  <option value="bank_transfer">🏦 Bank Transfer</option>
+  <option value="card">💳 Card Payment</option>
+  <option value="trust_wallet">👛 Trust Wallet / BNB</option>
+</select>
+</label>
+
+<div id="methodInfo" style="margin-top:18px;padding:14px;border:1px solid #164b4b;border-radius:12px;background:#091719">
+  Select a payment method to continue.
+</div>
+
+<button onclick="start()">Continue</button>
+
+<p>
+  <small>
+    Card details are not collected or stored by NexaPay.
+    Card payments require a configured payment gateway.
+    Trust Wallet payments are verified on BNB Smart Chain before being marked PAID.
+  </small>
+</p>
+
 <script>
-async function start(){
- const method=document.getElementById('method').value;
- const r=await fetch('/api/checkout/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({linkId:${JSON.stringify(p.id)},method})});
- const j=await r.json();
- if(j.checkoutUrl) location.href=j.checkoutUrl;
- else alert(j.error||'Gateway is not configured yet.');
+let cryptoQuote = null;
+
+function showMethod(){
+  const method = document.getElementById('method').value;
+  const box = document.getElementById('methodInfo');
+
+  if(method === 'bank_transfer'){
+    box.innerHTML =
+      '<b>🏦 Bank Transfer</b><br>' +
+      'Bank transfer instructions will be provided for this payment.';
+  }
+
+  if(method === 'card'){
+    box.innerHTML =
+      '<b>💳 Card Payment</b><br>' +
+      'You will be redirected to the configured secure card gateway.';
+  }
+
+  if(method === 'trust_wallet'){
+    box.innerHTML =
+      '<b>👛 Trust Wallet / BNB</b><br>' +
+      '<button type="button" onclick="getCryptoQuote()">Get BNB Payment Amount</button>';
+  }
 }
+
+async function getCryptoQuote(){
+  const box = document.getElementById('methodInfo');
+
+  box.innerHTML = 'Getting current BNB/USD rate...';
+
+  try {
+    const r = await fetch(
+      '/api/crypto/quote/${JSON.stringify(p.id)}'
+    );
+
+    const j = await r.json();
+
+    if(!r.ok){
+      box.innerHTML =
+        '<b>Quote error</b><br>' +
+        (j.error || 'Unable to create BNB quote.');
+      return;
+    }
+
+    cryptoQuote = j;
+
+    const bnb =
+      Number(j.bnbAmount).toFixed(8);
+
+    const merchant =
+      String(j.merchant || '');
+
+    box.innerHTML =
+      '<b>👛 Trust Wallet / BNB</b>' +
+      '<p>USD amount: <b>$' +
+      Number(j.usdAmount).toFixed(2) +
+      '</b></p>' +
+      '<p>Required BNB: <b>' +
+      bnb +
+      ' BNB</b></p>' +
+      '<p>Rate: 1 BNB ≈ $' +
+      Number(j.bnbUsdRate).toFixed(2) +
+      '</p>' +
+      '<p>Merchant BSC address:</p>' +
+      '<input id="merchantAddress" readonly value="' +
+      merchant +
+      '">' +
+      '<button type="button" onclick="copyMerchant()">Copy Address</button>' +
+      '<p><small>Open Trust Wallet → BNB → Send → paste the merchant address → send the exact BNB amount above.</small></p>' +
+      '<p>After sending, paste the BSC transaction hash below:</p>' +
+      '<input id="txHash" placeholder="0x... transaction hash">' +
+      '<button type="button" onclick="verifyCryptoPayment()">Verify Payment</button>' +
+      '<div id="verifyResult" style="margin-top:12px"></div>';
+  } catch(e) {
+    box.innerHTML =
+      '<b>Quote error</b><br>' + e.message;
+  }
+}
+
+async function copyMerchant(){
+  const value =
+    document.getElementById('merchantAddress').value;
+
+  try {
+    await navigator.clipboard.writeText(value);
+    alert('Merchant address copied.');
+  } catch(e) {
+    alert(value);
+  }
+}
+
+async function verifyCryptoPayment(){
+  if(!cryptoQuote){
+    alert('Get the BNB payment amount first.');
+    return;
+  }
+
+  const txHash =
+    document.getElementById('txHash').value.trim();
+
+  const result =
+    document.getElementById('verifyResult');
+
+  if(!/^0x[a-fA-F0-9]{64}$/.test(txHash)){
+    result.innerHTML =
+      '<span>Invalid BSC transaction hash.</span>';
+    return;
+  }
+
+  result.innerHTML = 'Checking BSC transaction...';
+
+  try {
+    const r = await fetch('/api/crypto/verify',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        linkId:${JSON.stringify(p.id)},
+        txHash
+      })
+    });
+
+    const j = await r.json();
+
+    if(!r.ok){
+      result.innerHTML =
+        '<b>Payment not verified:</b><br>' +
+        (j.error || 'Verification failed.');
+      return;
+    }
+
+    result.innerHTML =
+      '<h3>✅ Payment PAID</h3>' +
+      '<p>USD: $' +
+      Number(j.usdAmount).toFixed(2) +
+      '</p>' +
+      '<p>BNB received: ' +
+      Number(j.bnbPaid).toFixed(8) +
+      '</p>' +
+      '<p>Transaction verified on BSC.</p>' +
+      '<p>TX: ' + j.txHash + '</p>';
+
+  } catch(e) {
+    result.innerHTML =
+      '<b>Verification error:</b><br>' +
+      e.message;
+  }
+}
+
+async function start(){
+  const method =
+    document.getElementById('method').value;
+
+  if(method === 'trust_wallet'){
+    await getCryptoQuote();
+    return;
+  }
+
+  const r = await fetch('/api/checkout/start',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({
+      linkId:${JSON.stringify(p.id)},
+      method
+    })
+  });
+
+  const j = await r.json();
+
+  if(j.checkoutUrl){
+    location.href = j.checkoutUrl;
+    return;
+  }
+
+  if(j.instructions){
+    document.getElementById('methodInfo').innerHTML =
+      '<b>Payment instructions</b><br>' +
+      j.instructions;
+    return;
+  }
+
+  alert(
+    j.error ||
+    'Payment gateway is not configured yet.'
+  );
+}
+
+showMethod();
 </script></div></body></html>`);
   } catch (e) { res.status(500).send("Server error"); }
+});
+
+
+app.get("/api/crypto/quote/:id", async (req, res) => {
+  try {
+    const database = await db();
+
+    const result = await database.query(
+      "SELECT * FROM payment_links WHERE id=$1",
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Payment link not found"
+      });
+    }
+
+    const link = result.rows[0];
+    const usd = Number(link.amount);
+
+    if (String(link.currency).toUpperCase() !== "USD") {
+      return res.status(400).json({
+        error: "This crypto checkout requires a USD payment link"
+      });
+    }
+
+    const response = await fetch(
+      "https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT"
+    );
+
+    if (!response.ok) {
+      throw new Error("Unable to obtain current BNB/USD rate");
+    }
+
+    const market = await response.json();
+    const rate = Number(market.price);
+
+    if (!Number.isFinite(rate) || rate <= 0) {
+      throw new Error("Invalid BNB/USD rate");
+    }
+
+    const requiredBnb = usd / rate;
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await database.query(
+      `UPDATE payment_links
+       SET bnb_quote=$1,
+           bnb_quote_rate=$2,
+           bnb_quote_expires_at=$3
+       WHERE id=$4`,
+      [
+        requiredBnb,
+        rate,
+        expiresAt,
+        req.params.id
+      ]
+    );
+
+    return res.json({
+      ok: true,
+      linkId: link.id,
+      usdAmount: usd,
+      bnbAmount: requiredBnb,
+      bnbUsdRate: rate,
+      expiresAt,
+      merchant: process.env.MERCHANT_BSC_ADDRESS,
+      chainId: Number(process.env.BSC_CHAIN_ID || 56)
+    });
+
+  } catch (e) {
+    console.error("Crypto quote error:", e);
+    return res.status(500).json({
+      error: e.message
+    });
+  }
+});
+
+
+app.post("/api/crypto/verify", async (req, res) => {
+  try {
+    const { linkId, txHash } = req.body || {};
+
+    if (!linkId || !txHash) {
+      return res.status(400).json({
+        error: "linkId and txHash are required"
+      });
+    }
+
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+      return res.status(400).json({
+        error: "Invalid BSC transaction hash"
+      });
+    }
+
+    const merchant = String(
+      process.env.MERCHANT_BSC_ADDRESS || ""
+    ).toLowerCase();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(merchant)) {
+      return res.status(500).json({
+        error: "MERCHANT_BSC_ADDRESS is not configured"
+      });
+    }
+
+    const database = await db();
+
+    const linkResult = await database.query(
+      "SELECT * FROM payment_links WHERE id=$1",
+      [linkId]
+    );
+
+    if (!linkResult.rows.length) {
+      return res.status(404).json({
+        error: "Payment link not found"
+      });
+    }
+
+    const link = linkResult.rows[0];
+
+    if (String(link.currency).toUpperCase() !== "USD") {
+      return res.status(400).json({
+        error: "This Trust Wallet flow requires a USD payment link"
+      });
+    }
+
+    if (!link.bnb_quote || !link.bnb_quote_expires_at) {
+      return res.status(400).json({
+        error: "Create a fresh BNB payment quote first"
+      });
+    }
+
+    if (new Date(link.bnb_quote_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({
+        error: "BNB payment quote expired. Create a new quote."
+      });
+    }
+
+    const duplicate = await database.query(
+      "SELECT id FROM payments WHERE provider_reference=$1 LIMIT 1",
+      [txHash]
+    );
+
+    if (duplicate.rows.length) {
+      return res.status(409).json({
+        error: "This transaction has already been used"
+      });
+    }
+
+    const rpc =
+      process.env.BSC_RPC_URL ||
+      "https://bsc-dataseed.binance.org/";
+
+    async function rpcCall(method, params) {
+      const response = await fetch(rpc, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method,
+          params
+        })
+      });
+
+      const json = await response.json();
+
+      if (json.error) {
+        throw new Error(
+          json.error.message || "BSC RPC error"
+        );
+      }
+
+      return json.result;
+    }
+
+    const tx = await rpcCall(
+      "eth_getTransactionByHash",
+      [txHash]
+    );
+
+    if (!tx) {
+      return res.status(400).json({
+        error: "Transaction not found on BSC"
+      });
+    }
+
+    const receipt = await rpcCall(
+      "eth_getTransactionReceipt",
+      [txHash]
+    );
+
+    if (!receipt || !receipt.blockNumber) {
+      return res.status(400).json({
+        error: "Transaction is not confirmed yet"
+      });
+    }
+
+    if (receipt.status !== "0x1") {
+      return res.status(400).json({
+        error: "Transaction failed on BSC"
+      });
+    }
+
+    if (String(tx.to || "").toLowerCase() !== merchant) {
+      return res.status(400).json({
+        error: "Transaction was not sent to the merchant wallet"
+      });
+    }
+
+    const paidWei = BigInt(tx.value || "0x0");
+    const requiredBnb = Number(link.bnb_quote);
+
+    const requiredWei =
+      BigInt(Math.ceil(requiredBnb * 1e18));
+
+    if (paidWei < requiredWei) {
+      return res.status(400).json({
+        error: "Payment amount is less than required BNB amount"
+      });
+    }
+
+    const paymentId = id("PAY");
+
+    await database.query(
+      `INSERT INTO payments
+       (id,link_id,amount,currency,method,status,provider,provider_reference,created_at,updated_at)
+       VALUES($1,$2,$3,'USD','trust_wallet','PAID','bsc',$4,NOW(),NOW())`,
+      [
+        paymentId,
+        linkId,
+        Number(link.amount),
+        txHash
+      ]
+    );
+
+    await database.query(
+      `UPDATE payment_links
+       SET status='PAID',
+           provider='bsc',
+           provider_reference=$1,
+           paid_at=NOW()
+       WHERE id=$2`,
+      [txHash, linkId]
+    );
+
+    return res.json({
+      ok: true,
+      status: "PAID",
+      txHash,
+      usdAmount: Number(link.amount),
+      bnbPaid: Number(paidWei) / 1e18,
+      merchant: process.env.MERCHANT_BSC_ADDRESS,
+      chainId: Number(process.env.BSC_CHAIN_ID || 56),
+      blockNumber: receipt.blockNumber
+    });
+
+  } catch (e) {
+    console.error("Trust Wallet verification error:", e);
+
+    return res.status(500).json({
+      error: e.message
+    });
+  }
 });
 
 app.post("/api/checkout/start", async (req, res) => {

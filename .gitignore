@@ -1,3 +1,7 @@
 .env
 node_modules/
 *.log
+
+# Local server backups
+server.js.backup-*
+.env.backup-*
