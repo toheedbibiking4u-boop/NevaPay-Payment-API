@@ -386,16 +386,38 @@ app.get("/api/crypto/quote/:id", async (req, res) => {
       });
     }
 
-    const response = await fetch(
+    const rateUrls = [
+      "https://data-api.binance.vision/api/v3/ticker/price?symbol=BNBUSDT",
+      "https://api1.binance.com/api/v3/ticker/price?symbol=BNBUSDT",
+      "https://api2.binance.com/api/v3/ticker/price?symbol=BNBUSDT",
+      "https://api3.binance.com/api/v3/ticker/price?symbol=BNBUSDT",
+      "https://api4.binance.com/api/v3/ticker/price?symbol=BNBUSDT",
       "https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT"
-    );
+    ];
 
-    if (!response.ok) {
-      throw new Error("Unable to obtain current BNB/USD rate");
+    let rate = NaN;
+
+    for (const url of rateUrls) {
+      try {
+        const response = await fetch(url, {
+          headers: { "accept": "application/json" }
+        });
+
+        if (!response.ok) continue;
+
+        const market = await response.json();
+        const candidate = Number(market?.price);
+
+        if (Number.isFinite(candidate) && candidate > 0) {
+          rate = candidate;
+          break;
+        }
+      } catch (_) {}
     }
 
-    const market = await response.json();
-    const rate = Number(market.price);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      throw new Error("Unable to obtain current BNB/USD rate");
+    }
 
     if (!Number.isFinite(rate) || rate <= 0) {
       throw new Error("Invalid BNB/USD rate");
