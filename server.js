@@ -198,7 +198,7 @@ async function getCryptoQuote(){
 
   try {
     const r = await fetch(
-      '/api/crypto/quote/${JSON.stringify(p.id)}'
+      '/api/crypto/quote/${encodeURIComponent(p.id)}'
     );
 
     const j = await r.json();
@@ -284,7 +284,7 @@ async function verifyCryptoPayment(){
         'Content-Type':'application/json'
       },
       body:JSON.stringify({
-        linkId:${JSON.stringify(p.id)},
+        linkId:${encodeURIComponent(p.id)},
         txHash
       })
     });
@@ -331,7 +331,7 @@ async function start(){
       'Content-Type':'application/json'
     },
     body:JSON.stringify({
-      linkId:${JSON.stringify(p.id)},
+      linkId:${encodeURIComponent(p.id)},
       method
     })
   });
