@@ -78,7 +78,9 @@ app.get("/api/health", async (req, res) => {
   res.json({ ok: true, service: "NexaPay Payment API", database, time: new Date().toISOString() });
 });
 
-app.get("/api/payment-links", async (req,res)=>{try{const database=await db();const q=await database.query("SELECT id,amount,currency,description,methods,status,provider,provider_reference,created_at,paid_at FROM payment_links ORDER BY created_at DESC LIMIT 100");res.json({ok:true,paymentLinks:q.rows});}catch(e){res.status(500).json({ok:false,error:e.message});}});\n\napp.post("/api/payment-links", async (req, res) => {
+app.get("/api/payment-links", async (req,res)=>{try{const database=await db();const q=await database.query("SELECT id,amount,currency,description,methods,status,provider,provider_reference,created_at,paid_at FROM payment_links ORDER BY created_at DESC LIMIT 100");res.json({ok:true,paymentLinks:q.rows});}catch(e){res.status(500).json({ok:false,error:e.message});}});
+
+app.post("/api/payment-links", async (req, res) => {
   try {
     const amount = cleanAmount(req.body.amount);
     const currency = String(req.body.currency || "PKR").toUpperCase().slice(0, 8);
