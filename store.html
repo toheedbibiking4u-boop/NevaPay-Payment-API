@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NexaPay - Store & Investment</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050708;color:#eaffff;font-family:Arial,sans-serif}
+header{padding:22px;background:#071416;border-bottom:1px solid #13d8cb}
+.logo{font-size:28px;font-weight:800;color:#16e5d5}
+nav{margin-top:15px;display:flex;gap:8px;flex-wrap:wrap}
+nav button,.btn{border:0;border-radius:10px;padding:11px 15px;background:#13d8cb;color:#001514;font-weight:800;cursor:pointer}
+main{max-width:1100px;margin:auto;padding:20px}
+section{margin-bottom:30px}
+.card{background:#0a1416;border:1px solid #164d4d;border-radius:16px;padding:20px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}
+.price{font-size:22px;color:#18e5d3;font-weight:800}
+.old{text-decoration:line-through;color:#777}
+.discount{color:#62f2a4;font-weight:700}
+input,select{width:100%;padding:12px;margin:7px 0;border-radius:9px;border:1px solid #285959;background:#071012;color:white}
+.product{display:flex;flex-direction:column;gap:8px}
+.product h3{margin:0}
+.cart{position:fixed;right:15px;bottom:15px;background:#13d8cb;color:#001514;padding:15px 20px;border-radius:14px;font-weight:900;cursor:pointer}
+.notice{background:#171208;border:1px solid #765b20;padding:14px;border-radius:10px;color:#ffe7a0}
+small{color:#9bb}
+#cartBox{display:none}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">NexaPay</div>
+<div>Payments • Online Store • Investment Center</div>
+<nav>
+<button onclick="go('invest')">Investment</button>
+<button onclick="go('store')">Store</button>
+<button onclick="go('checkout')">Checkout</button>
+<button onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
+</nav>
+</header>
+
+<main>
+
+<section id="invest">
+<h1>Investment Center</h1>
+
+<div class="notice">
+Investment returns shown below are <b>target/illustrative ranges, not guaranteed returns</b>.
+Actual results can be lower or negative. Investment products may require applicable
+legal/regulatory approvals and customer disclosures before public launch.
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>PKR Investment</h2>
+<p>Minimum: <b>PKR 1,000</b></p>
+<p>Maximum: <b>PKR 1,000,000</b></p>
+<p class="price">Target range: 15%–25% / month</p>
+<small>Illustrative target only — not guaranteed.</small>
+<button class="btn" style="margin-top:15px" onclick="investment('PKR')">View Plan</button>
+</div>
+
+<div class="card">
+<h2>USDT Investment</h2>
+<p>Minimum: <b>USDT 100</b></p>
+<p>Maximum: <b>USDT 100,000</b></p>
+<p class="price">Target range: 10%–20% / month</p>
+<small>Illustrative target only — not guaranteed.</small>
+<button class="btn" style="margin-top:15px" onclick="investment('USDT')">View Plan</button>
+</div>
+</div>
+</section>
+
+<section id="store">
+<h1>Online Store</h1>
+<p>Samsung • iPhone • Accessories • Used Mobile Services</p>
+
+<div class="grid">
+
+<div class="card product">
+<h3>Samsung Mobile</h3>
+<p>New Samsung phones</p>
+<p><small>Market list price is entered from the current verified catalogue.</small></p>
+<label>Market List Price (PKR)</label>
+<input id="samsungPrice" type="number" placeholder="Enter current market price">
+<button class="btn" onclick="addProduct('Samsung Mobile','samsungPrice')">Add to Cart</button>
+</div>
+
+<div class="card product">
+<h3>iPhone</h3>
+<p>New Apple iPhone</p>
+<p><small>Market list price is entered from the current verified catalogue.</small></p>
+<label>Market List Price (PKR)</label>
+<input id="iphonePrice" type="number" placeholder="Enter current market price">
+<button class="btn" onclick="addProduct('iPhone','iphonePrice')">Add to Cart</button>
+</div>
+
+<div class="card product">
+<h3>Mobile Accessories</h3>
+<p>Chargers • Cables • Covers • Earbuds</p>
+<label>Market List Price (PKR)</label>
+<input id="accessoryPrice" type="number" placeholder="Enter current market price">
+<button class="btn" onclick="addProduct('Mobile Accessories','accessoryPrice')">Add to Cart</button>
+</div>
+
+<div class="card product">
+<h3>Used Mobile Services</h3>
+<p>Used phone buying/selling/service</p>
+<button class="btn" onclick="addService()">Add Service</button>
+</div>
+
+</div>
+</section>
+
+<section id="checkout">
+<h1>Checkout</h1>
+
+<div class="card">
+<h2>Payment Method</h2>
+
+<select id="currency">
+<option>PKR</option>
+<option>USD</option>
+<option>USDT</option>
+</select>
+
+<select id="method">
+<option>Debit Card</option>
+<option>Credit Card</option>
+<option>Bank Transfer</option>
+<option>Easypaisa</option>
+<option>JazzCash</option>
+<option>Trust Wallet / BNB</option>
+</select>
+
+<div id="checkoutTotal" class="price">PKR 0</div>
+
+<button class="btn" onclick="pay()">Continue to Secure Payment</button>
+
+<p><small>
+Card details must be entered only on the approved payment gateway.
+NexaPay does not store raw card numbers or CVV.
+</small></p>
+</div>
+</section>
+
+<section id="cartBox">
+<h1>Your Cart</h1>
+<div id="cartItems"></div>
+<div class="card">
+<h2>Total: <span id="cartTotal">PKR 0</span></h2>
+<button class="btn" onclick="go('checkout')">Proceed to Checkout</button>
+</div>
+</section>
+
+</main>
+
+<div class="cart" onclick="openCart()">🛒 Cart: <span id="cartCount2">0</span></div>
+
+<script>
+let cart=[];
+
+function go(id){
+ document.getElementById(id).scrollIntoView({behavior:'smooth'});
+}
+
+function addProduct(name,inputId){
+ const input=document.getElementById(inputId);
+ const market=Number(input.value);
+ if(!market || market<=0){
+   alert('Current verified market list price enter karein.');
+   return;
+ }
+ const price=Math.round(market*0.85);
+ cart.push({name,market,price});
+ updateCart();
+ alert(name+' added. 15% discount applied.');
+}
+
+function addService(){
+ cart.push({name:'Used Mobile Service',market:0,price:0});
+ updateCart();
+ alert('Used mobile service added.');
+}
+
+function updateCart(){
+ document.getElementById('cartCount').textContent=cart.length;
+ document.getElementById('cartCount2').textContent=cart.length;
+
+ let total=cart.reduce((a,x)=>a+x.price,0);
+ document.getElementById('checkoutTotal').textContent='PKR '+total.toLocaleString();
+ document.getElementById('cartTotal').textContent='PKR '+total.toLocaleString();
+
+ document.getElementById('cartItems').innerHTML=cart.length
+ ? cart.map((x,i)=>`
+ <div class="card">
+ <b>${x.name}</b><br>
+ ${x.market?'<span class="old">Market: PKR '+x.market.toLocaleString()+'</span><br>':''}
+ ${x.price?'Discounted: <span class="price">PKR '+x.price.toLocaleString()+'</span>':'Service — price confirmed separately'}
+ <br><button class="btn" onclick="removeItem(${i})">Remove</button>
+ </div>`).join('')
+ : '<div class="card">Cart empty.</div>';
+}
+
+function removeItem(i){
+ cart.splice(i,1);
+ updateCart();
+}
+
+function openCart(){
+ document.getElementById('cartBox').style.display='block';
+ document.getElementById('cartBox').scrollIntoView({behavior:'smooth'});
+}
+
+function investment(currency){
+ alert(currency+' investment plan selected. Final subscription flow will require verified terms, disclosures and applicable compliance.');
+}
+
+async function pay(){
+ if(!cart.length){
+   alert('Cart empty hai.');
+   return;
+ }
+ const method=document.getElementById('method').value;
+ alert('Selected payment method: '+method+'\\nSecure gateway integration required for live payment.');
+}
+
+updateCart();
+</script>
+</body>
+</html>

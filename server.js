@@ -846,6 +846,9 @@ app.post("/api/xgate/webhook", express.json({type:"application/json"}), async (r
   }
 });
 
+app.get("/store", (req,res) => {
+  res.sendFile(require("path").join(__dirname,"store.html"));
+});
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);
