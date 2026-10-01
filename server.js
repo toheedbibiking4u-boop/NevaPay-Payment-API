@@ -788,6 +788,11 @@ ACTIVE ENVIRONMENT : [ BSC-MAINNET ]
 <a class="x" href="#bnb"><b>[11]</b> WITHDRAW BNB<br>Send BNB</a>
 <a class="x" href="#history"><b>[12]</b> TRANSACTION HISTORY<br>Review records</a>
 <a class="x" href="#payment"><b>[13]</b> PAYMENT CENTER<br>Receive • Send • Requests</a>
+<a class="x" href="/store#investment"><b>[14]</b> INVESTMENT CENTER<br>PKR • USDT Plans</a>
+<a class="x" href="/store#store"><b>[15]</b> ONLINE STORE<br>Mobile • Accessories • Services</a>
+<a class="x" href="/store#samsung-shop"><b>[16]</b> SAMSUNG STORE<br>Galaxy • Phones • Accessories</a>
+<a class="x" href="/store#checkout"><b>[17]</b> CHECKOUT<br>Payment Methods • Cart</a>
+
 </div>
 
 <div class="p">
