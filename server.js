@@ -127,7 +127,7 @@ app.get("/api/payment-links/:id", async (req, res) => {
 app.get("/pay/:id", async (req, res) => {
   try {
     const database = await db();
-    const r = await database.query("SELECT * FROM payment_links WHERE id=$1", [req.params.id]);
+    const r = await database.query("SELECT * FROM payment_links WHERE id=$1 OR LOWER(TRIM(id))=LOWER(TRIM($1))", [req.params.id]);
     if (!r.rowCount) return res.status(404).send("Payment link not found");
     const p = r.rows[0];
     const methods = [...(Array.isArray(p.methods) ? p.methods : []), "trust_wallet"].filter((v,i,a) => a.indexOf(v) === i);
