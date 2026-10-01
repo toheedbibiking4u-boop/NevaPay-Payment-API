@@ -815,6 +815,37 @@ Liquidity transaction : NOT SENT
 
 app.get("/payment-center",(req,res)=>res.sendFile(require("path").join(__dirname,"payment-center.html")));
 
+
+// XGate webhook receiver
+app.post("/api/xgate/webhook", express.json({type:"application/json"}), async (req, res) => {
+  try {
+    const event = req.body || {};
+
+    console.log("[XGATE WEBHOOK]", JSON.stringify({
+      id: event.id,
+      status: event.status,
+      name: event.name,
+      amount: event.amount,
+      operation: event.operation,
+      externalId: event.externalId
+    }));
+
+    // Acknowledge webhook immediately.
+    // Payment is NOT marked PAID here until the XGate transaction
+    // can be matched and verified.
+    return res.status(200).json({
+      ok: true,
+      received: true
+    });
+  } catch (e) {
+    console.error("[XGATE WEBHOOK ERROR]", e.message);
+    return res.status(200).json({
+      ok: false,
+      received: true
+    });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);
