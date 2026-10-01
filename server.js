@@ -813,6 +813,8 @@ Liquidity transaction : NOT SENT
 </html>`);
 });
 
+app.get("/payment-center",(req,res)=>res.sendFile(require("path").join(__dirname,"payment-center.html")));
+
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);

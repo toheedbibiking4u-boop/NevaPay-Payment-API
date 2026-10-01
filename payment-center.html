@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NexaPay Payment Center</title>
+<style>
+body{margin:0;background:#000;color:#eee;font-family:Arial,sans-serif;padding:15px}
+h1,h2{color:#12ddd0}
+.card{border:1px solid #15575a;background:#061214;padding:16px;margin:12px 0;border-radius:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{border:1px solid #15575a;padding:12px;border-radius:8px}
+.stat b{display:block;color:#12e0a0;font-size:19px;margin-top:5px}
+input,select,button{width:100%;box-sizing:border-box;padding:12px;margin:6px 0;border-radius:8px}
+input,select{background:#020607;color:#fff;border:1px solid #245b5e}
+button{background:#12d8c8;color:#001010;border:0;font-weight:bold}
+.method{display:block;border:1px solid #17494b;padding:10px;margin:6px 0;border-radius:8px}
+.link{word-break:break-all;color:#16e0a0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{border-bottom:1px solid #183638;padding:8px;text-align:left}
+.paid{color:#15e0a0;font-weight:bold}
+.pending{color:#ffd166;font-weight:bold}
+.small{color:#91a8aa}
+</style>
+</head>
+<body>
+
+<h1>◆ NexaPay Payment Center</h1>
+<div class="small">Receive payments • Payment Links • BSC Mainnet</div>
+
+<div class="card">
+<h2>BALANCE</h2>
+<div class="grid">
+<div class="stat">USD RECEIVED<b id="usd">0.00</b></div>
+<div class="stat">PKR RECEIVED<b id="pkr">0.00</b></div>
+<div class="stat">PAID<b id="paid">0</b></div>
+<div class="stat">LINKS<b id="linksCount">0</b></div>
+</div>
+</div>
+
+<div class="card">
+<h2>GENERATE PAYMENT LINK</h2>
+
+<label>Amount</label>
+<input id="amount" type="number" min="0.01" step="0.01" placeholder="Example: 50">
+
+<label>Currency</label>
+<select id="currency">
+<option value="USD">USD</option>
+<option value="PKR">PKR</option>
+<option value="EUR">EUR</option>
+<option value="GBP">GBP</option>
+</select>
+
+<label>Description / Invoice</label>
+<input id="description" placeholder="Invoice #1001">
+
+<label class="method">
+<input type="checkbox" value="trust_wallet" checked>
+Trust Wallet / BNB
+</label>
+
+<label class="method">
+<input type="checkbox" value="card">
+Card Payment
+</label>
+
+<label class="method">
+<input type="checkbox" value="bank_transfer">
+Bank Transfer
+</label>
+
+<label class="method">
+<input type="checkbox" value="invoice">
+Invoice Payment
+</label>
+
+<label class="method">
+<input type="checkbox" value="crypto">
+Crypto Payment
+</label>
+
+<button onclick="generate()">GENERATE PAYMENT LINK</button>
+
+<div id="result"></div>
+</div>
+
+<div class="card">
+<h2>PAYMENT LINKS</h2>
+<button onclick="loadLinks()">REFRESH</button>
+<div id="list">Loading...</div>
+</div>
+
+<div class="card">
+<h2>RECEIVED PAYMENTS</h2>
+<div id="payments">Loading...</div>
+</div>
+
+<script>
+let latestLink="";
+
+async function generate(){
+  const amount=Number(document.getElementById("amount").value);
+  const currency=document.getElementById("currency").value;
+  const description=document.getElementById("description").value;
+  const methods=[...document.querySelectorAll(".method input:checked")].map(x=>x.value);
+
+  if(!amount || amount<=0){
+    alert("Enter amount");
+    return;
+  }
+
+  if(!methods.length){
+    alert("Select payment method");
+    return;
+  }
+
+  const r=await fetch("/api/payment-links",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({amount,currency,description,methods})
+  });
+
+  const j=await r.json();
+
+  if(!r.ok){
+    alert(j.error||"Payment link creation failed");
+    return;
+  }
+
+  latestLink=j.paymentUrl||j.url||
+    (location.origin+"/pay/"+encodeURIComponent(j.id));
+
+  document.getElementById("result").innerHTML=
+    "<div class='card'><b>✅ PAYMENT LINK GENERATED</b>"+
+    "<p class='link'>"+latestLink+"</p>"+
+    "<button onclick='copyLink()'>COPY LINK</button>"+
+    "<button onclick='openLink()'>OPEN PAYMENT PAGE</button></div>";
+
+  loadLinks();
+}
+
+function copyLink(){
+  navigator.clipboard.writeText(latestLink);
+  alert("Payment link copied");
+}
+
+function openLink(){
+  location.href=latestLink;
+}
+
+async function loadLinks(){
+  try{
+    const r=await fetch("/api/payment-links");
+    const j=await r.json();
+    const arr=j.paymentLinks||[];
+
+    document.getElementById("linksCount").textContent=arr.length;
+
+    if(!arr.length){
+      document.getElementById("list").innerHTML="No payment links yet.";
+      return;
+    }
+
+    document.getElementById("list").innerHTML=
+      arr.map(p=>{
+        const url="/pay/"+encodeURIComponent(p.id);
+        return "<div class='card'>"+
+        "<b>"+p.amount+" "+p.currency+"</b><br>"+
+        (p.description||"")+"<br>"+
+        "Status: <span class='"+(p.status==="PAID"?"paid":"pending")+"'>"+
+        p.status+"</span><br>"+
+        "<a class='link' href='"+url+"'>OPEN PAYMENT PAGE</a>"+
+        "</div>";
+      }).join("");
+  }catch(e){
+    document.getElementById("list").textContent="Unable to load links";
+  }
+}
+
+async function loadPayments(){
+  try{
+    const r=await fetch("/api/payments");
+    const j=await r.json();
+    const arr=j.payments||[];
+    const paid=arr.filter(x=>x.status==="PAID");
+
+    document.getElementById("paid").textContent=paid.length;
+
+    let usd=0, pkr=0;
+
+    paid.forEach(x=>{
+      const a=Number(x.amount)||0;
+      if(x.currency==="USD") usd+=a;
+      if(x.currency==="PKR") pkr+=a;
+    });
+
+    document.getElementById("usd").textContent=usd.toFixed(2)+" USD";
+    document.getElementById("pkr").textContent=pkr.toFixed(2)+" PKR";
+
+    if(!arr.length){
+      document.getElementById("payments").textContent="No payments received yet.";
+      return;
+    }
+
+    document.getElementById("payments").innerHTML=
+      "<table><tr><th>Amount</th><th>Method</th><th>Status</th></tr>"+
+      arr.map(x=>
+        "<tr><td>"+x.amount+" "+x.currency+
+        "</td><td>"+(x.method||"")+
+        "</td><td class='"+(x.status==="PAID"?"paid":"pending")+"'>"+
+        x.status+"</td></tr>"
+      ).join("")+
+      "</table>";
+  }catch(e){
+    document.getElementById("payments").textContent="Unable to load payments";
+  }
+}
+
+loadLinks();
+loadPayments();
+</script>
+
+</body>
+</html>
