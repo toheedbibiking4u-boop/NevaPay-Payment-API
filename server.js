@@ -740,8 +740,77 @@ function escapeHtml(s) {
 }
 
 initDb().then(() => {
-  app.get("/",(req,res)=>res.send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>NexaPay Crypto</title><style>body{margin:0;background:#000;color:#eee;font-family:monospace;padding:16px}.h{color:#12d8d0;font-size:28px;font-weight:bold}.b{color:#16e0a0;font-size:18px;margin:18px 0}.n{border:1px solid #16d8d0;padding:18px;text-align:center;color:#12d8d0}.m{color:#16d89b;font-size:22px;margin:20px 0 10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.x{background:#061416;border:1px solid #0b2427;padding:14px;color:#eee;text-decoration:none}.x b{color:#12d8d0}.p{border:1px solid #16d8d0;margin-top:22px;padding:16px}.g{color:#16e0a0}@media(max-width:600px){.h{font-size:23px}.x{font-size:12px;padding:10px}}</style></head><body><div class="h">NexaPay Crypto<br>BSC MAINNET TOKEN SYSTEM</div><div class="b">◆ BNB BINANCE COIN &nbsp;&nbsp; ● USDT TETHER USD</div><div class="n"><b>BSC MAINNET TOKEN SYSTEM</b><br><br>ACTIVE ENVIRONMENT : [ BSC-MAINNET ]</div><div class="m">SYSTEM CONTROL CENTER</div><div class="grid"><a class="x" href="#create"><b>[01]</b> CREATE TOKEN<br>Deploy & configure BEP-20</a><a class="x" href="#info"><b>[02]</b> TOKEN INFORMATION<br>Name • Symbol • Supply</a><a class="x" href="#transfer"><b>[03]</b> TRANSFER TOKEN<br>BEP-20 transfer</a><a class="x" href="#wallet"><b>[04]</b> WALLET → WALLET<br>BSC address transfer</a><a class="x" href="#exchange"><b>[05]</b> EXCHANGE TRANSFER</a><a class="x" href="#holders"><b>[06]</b> HOLDER ALLOCATION</a><a class="x" href="#liquidity"><b>[07]</b> ADD LIQUIDITY<br>BNB + Token</a><a class="x" href="#management"><b>[08]</b> TOKEN MANAGEMENT</a><a class="x" href="#status"><b>[09]</b> WALLET & BNB STATUS</a><a class="x" href="#withdraw"><b>[10]</b> WITHDRAW TOKEN</a><a class="x" href="#bnb"><b>[11]</b> WITHDRAW BNB</a><a class="x" href="#history"><b>[12]</b> TRANSACTION HISTORY</a><a class="x" href="#payment"><b>[13]</b> PAYMENT CENTER<br>Receive • Send • Requests</a></div><div class="p"><h2>LIQUIDITY PREVIEW (BSC MAINNET)</h2><p class="g">● USDT &nbsp; LP VALUE : LIVE / PREVIEW</p><p class="g">◆ BNB &nbsp; REQUIRED BNB LIQUIDITY : CALCULATED</p></div><div class="p"><h2>TRANSACTION STATUS</h2>Deployment transaction : NOT SENT<br>Approval transaction : NOT SENT<br>Liquidity transaction : NOT SENT</div><div class="p" id="payment"><h2>PAYMENT CENTER</h2><p class="g">Receive • Send • Payment Requests</p><a class="x" href="/api/payment-links">VIEW PAYMENT LINKS</a></div></body></html>`));
-app.get("/", (req,res) => res.send("<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>NexaPay</title><style>body{margin:0;background:#000;color:#eee;font-family:monospace;padding:18px}.h{color:#12d8d0;font-size:30px;font-weight:bold}.b{color:#16e0a0;font-size:18px;margin:18px 0}.n{border:1px solid #16d8d0;padding:18px;text-align:center;color:#12d8d0}.m{color:#16d89b;font-size:22px;margin:22px 0 10px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.x{background:#061416;border:1px solid #0b2427;padding:14px;color:#eee;text-decoration:none}.x b{color:#12d8d0}.p{border:1px solid #16d8d0;margin-top:22px;padding:16px}.g{color:#16e0a0}@media(max-width:600px){.h{font-size:23px}.x{font-size:12px;padding:10px}}</style></head><body><div class="h">NexaPay</div><div class="b">◆ BNB BINANCE COIN &nbsp; • USDT TETHER USD</div><div class="n"><b>BSC MAINNET TOKEN SYSTEM</b><br><br>ACTIVE ENVIRONMENT : [ BSC-MAINNET ]</div><div class="m">SYSTEM CONTROL CENTER</div><div class="grid"><a class="x" href="#create"><b>[01]</b> CREATE TOKEN<br>Deploy & configure BEP-20</a><a class="x" href="#info"><b>[02]</b> TOKEN INFORMATION<br>Name • Symbol • Supply</a><a class="x" href="#transfer"><b>[03]</b> TRANSFER TOKEN<br>BEP-20 transfer</a><a class="x" href="#wallet"><b>[04]</b> WALLET → WALLET<br>BSC address transfer</a><a class="x" href="#exchange"><b>[05]</b> EXCHANGE TRANSFER<br>Exchange deposit transfer</a><a class="x" href="#holders"><b>[06]</b> HOLDER ALLOCATION<br>Multiple holders</a><a class="x" href="#liquidity"><b>[07]</b> ADD LIQUIDITY<br>BNB + Token</a><a class="x" href="#management"><b>[08]</b> TOKEN MANAGEMENT<br>Transfer • Approve • Control</a><a class="x" href="#status"><b>[09]</b> WALLET & BNB STATUS<br>Wallet and native BNB</a><a class="x" href="#withdraw"><b>[10]</b> WITHDRAW TOKEN<br>Send token</a><a class="x" href="#bnb"><b>[11]</b> WITHDRAW BNB<br>Send BNB</a><a class="x" href="#history"><b>[12]</b> TRANSACTION HISTORY<br>Review records</a><a class="x" href="#payment"><b>[13]</b> PAYMENT CENTER<br>Receive • Send • Requests</a></div><div class="p"><h2>LIQUIDITY PREVIEW (BSC MAINNET)</h2><p class="g">● USDT &nbsp; LP VALUE : LIVE / PREVIEW</p><p class="g">◆ BNB &nbsp; REQUIRED BNB LIQUIDITY : CALCULATED</p></div><div class="p"><h2>TRANSACTION STATUS</h2>Deployment transaction : NOT SENT<br>Approval transaction : NOT SENT<br>Liquidity transaction : NOT SENT</div><div class="p" id="payment"><h2>PAYMENT CENTER</h2><p class="g">Receive • Send • Payment Requests</p><a class="x" href="/api/payment-links">VIEW PAYMENT LINKS</a></div></body></html>"));
+  
+app.get('/', (req, res) => {
+  res.send(`<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NexaPay</title>
+<style>
+body{margin:0;background:#000;color:#eee;font-family:monospace;padding:18px}
+.h{color:#12d8d0;font-size:30px;font-weight:bold}
+.b{color:#16e0a0;font-size:18px;margin:18px 0}
+.n{border:1px solid #16d8d0;padding:18px;text-align:center;color:#12d8d0}
+.m{color:#16d89b;font-size:22px;margin:22px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.x{background:#061416;border:1px solid #0b2427;padding:14px;color:#eee;text-decoration:none}
+.x b{color:#12d8d0}
+.p{border:1px solid #16d8d0;margin-top:22px;padding:16px}
+.g{color:#16e0a0}
+</style>
+</head>
+<body>
+
+<div class="h">NexaPay</div>
+<div class="b">◆ BNB BINANCE COIN &nbsp; • USDT TETHER USD</div>
+
+<div class="n">
+<b>BSC MAINNET TOKEN SYSTEM</b><br><br>
+ACTIVE ENVIRONMENT : [ BSC-MAINNET ]
+</div>
+
+<div class="m">SYSTEM CONTROL CENTER</div>
+
+<div class="grid">
+<a class="x" href="#create"><b>[01]</b> CREATE TOKEN<br>Deploy & configure BEP-20</a>
+<a class="x" href="#info"><b>[02]</b> TOKEN INFORMATION<br>Name • Symbol • Supply</a>
+<a class="x" href="#transfer"><b>[03]</b> TRANSFER TOKEN<br>BEP-20 transfer</a>
+<a class="x" href="#wallet"><b>[04]</b> WALLET → WALLET<br>BSC address transfer</a>
+<a class="x" href="#exchange"><b>[05]</b> EXCHANGE TRANSFER<br>Exchange deposit transfer</a>
+<a class="x" href="#holders"><b>[06]</b> HOLDER ALLOCATION<br>Multiple holders</a>
+<a class="x" href="#liquidity"><b>[07]</b> ADD LIQUIDITY<br>BNB + Token</a>
+<a class="x" href="#management"><b>[08]</b> TOKEN MANAGEMENT<br>Transfer • Approve • Control</a>
+<a class="x" href="#status"><b>[09]</b> WALLET & BNB STATUS<br>Wallet and native BNB</a>
+<a class="x" href="#withdraw"><b>[10]</b> WITHDRAW TOKEN<br>Send token</a>
+<a class="x" href="#bnb"><b>[11]</b> WITHDRAW BNB<br>Send BNB</a>
+<a class="x" href="#history"><b>[12]</b> TRANSACTION HISTORY<br>Review records</a>
+<a class="x" href="#payment"><b>[13]</b> PAYMENT CENTER<br>Receive • Send • Requests</a>
+</div>
+
+<div class="p">
+<h2>LIQUIDITY PREVIEW (BSC MAINNET)</h2>
+<p class="g">● USDT &nbsp; LP VALUE : LIVE / PREVIEW</p>
+<p class="g">◆ BNB &nbsp; REQUIRED BNB LIQUIDITY : CALCULATED</p>
+</div>
+
+<div class="p">
+<h2>TRANSACTION STATUS</h2>
+Deployment transaction : NOT SENT<br>
+Approval transaction : NOT SENT<br>
+Liquidity transaction : NOT SENT
+</div>
+
+<div class="p" id="payment">
+<h2>PAYMENT CENTER</h2>
+<p class="g">Receive • Send • Payment Requests</p>
+<a class="x" href="/api/payment-links">VIEW PAYMENT LINKS</a>
+</div>
+
+</body>
+</html>`);
+});
+
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);
