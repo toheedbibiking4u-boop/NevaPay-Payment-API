@@ -791,7 +791,7 @@ ACTIVE ENVIRONMENT : [ BSC-MAINNET ]
 <a class="x" href="/store#investment"><b>[14]</b> INVESTMENT CENTER<br>PKR • USDT Plans</a>
 <a class="x" href="/store#store"><b>[15]</b> ONLINE STORE<br>Mobile • Accessories • Services</a>
 <a class="x" href="/store#samsung-shop"><b>[16]</b> SAMSUNG STORE<br>Galaxy • Phones • Accessories</a>
-<a class="x" href="/store#checkout"><b>[17]</b> CHECKOUT<br>Payment Methods • Cart</a>
+<a class="x" href="/store#checkout"><b>[17]</b> CHECKOUT<br>Payment Methods • Cart</a><a class="x" href="https://wa.me/15022873249" target="_blank" rel="noopener"><b>[18] 💬 WHATSAPP SUPPORT</b><br>Chat with NexaPay Support</a><a class="x" href="/website-info"><b>[19] ℹ️ WEBSITE INFORMATION</b><br>Services • Security • Terms • Contact</a>
 
 </div>
 
@@ -854,6 +854,8 @@ app.post("/api/xgate/webhook", express.json({type:"application/json"}), async (r
 app.get("/store", (req,res) => {
   res.sendFile(require("path").join(__dirname,"store.html"));
 });
+app.get("/website-info", (req,res)=>res.sendFile(require("path").join(__dirname,"website-info.html")));
+
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);
