@@ -324,9 +324,31 @@ async function start(){
     document.getElementById('method').value;
 
   if(method === 'trust_wallet'){
-    await getCryptoQuote();
-    return;
-  }
+      const merchantId = '${process.env.ATLOS_MERCHANT_ID || ""}';
+
+      if(!merchantId){
+        alert('ATLOS Merchant ID is not configured.');
+        return;
+      }
+
+      if(typeof atlos === 'undefined'){
+        alert('ATLOS payment widget is still loading. Please try again.');
+        return;
+      }
+
+      atlos.Pay({
+        merchantId: merchantId,
+        orderId: '${p.id}',
+        orderAmount: Number('${p.amount}'),
+        orderCurrency: '${p.currency}',
+        postbackUrl: '/api/atlos/webhook',
+        noBuyCrypto: false,
+        language: 'en',
+        theme: 'dark'
+      });
+
+      return;
+    }
 
   const r = await fetch('/api/checkout/start',{
     method:'POST',
