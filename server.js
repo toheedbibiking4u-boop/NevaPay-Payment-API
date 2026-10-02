@@ -158,7 +158,7 @@ ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
   Select a payment method to continue.
 </div>
 
-<button onclick="start()">Continue</button>
+<button onclick="alert('BUTTON CLICKED'); start()">Continue</button>
 
 <p>
   <small>
