@@ -337,16 +337,21 @@ async function start(){
         return;
       }
 
-      atlos.Pay({
-        merchantId: merchantId,
-        orderId: '${p.id}',
-        orderAmount: Number('${p.amount}'),
-        orderCurrency: '${p.currency}',
-        postbackUrl: '/api/atlos/webhook',
-        noBuyCrypto: false,
-        language: 'en',
-        theme: 'dark'
-      });
+      try {
+        atlos.Pay({
+          merchantId: merchantId,
+          orderId: '${p.id}',
+          orderAmount: Number('${p.amount}'),
+          orderCurrency: '${p.currency}',
+          postbackUrl: 'https://nevapay-payment-api.onrender.com/api/atlos/webhook',
+          noBuyCrypto: false,
+          language: 'en',
+          theme: 'dark'
+        });
+      } catch(e) {
+        alert('ATLOS ERROR: ' + (e && e.message ? e.message : String(e)));
+        console.error('ATLOS ERROR', e);
+      }
 
       return;
     }
