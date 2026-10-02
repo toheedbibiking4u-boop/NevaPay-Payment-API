@@ -382,7 +382,7 @@ async function start(){
 }
 
 showMethod();
-</script></div><script async src="https://atlos.io/packages/app/atlos.js"></script>
+</script></div><script src="https://atlos.io/packages/app/atlos.js"></script>
 </body></html>`);
   } catch (e) { res.status(500).send("Server error"); }
 });
