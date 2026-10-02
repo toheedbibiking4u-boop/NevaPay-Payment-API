@@ -360,7 +360,8 @@ async function start(){
 }
 
 showMethod();
-</script></div></body></html>`);
+</script></div><script async src="https://atlos.io/packages/app/atlos.js"></script>
+</body></html>`);
   } catch (e) { res.status(500).send("Server error"); }
 });
 
