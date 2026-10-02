@@ -320,6 +320,7 @@ async function verifyCryptoPayment(){
 }
 
 async function start(){
+  alert('START FUNCTION RUNNING');
   const method =
     document.getElementById('method').value;
 
