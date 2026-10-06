@@ -682,17 +682,150 @@ app.post("/api/crypto/verify", async (req, res) => {
 });
 
 app.post("/api/checkout/start", async (req, res) => {
-  // This endpoint intentionally does NOT fake a successful payment.
-  // Connect the approved merchant gateway here and return its hosted checkout URL.
-  const linkId = String(req.body.linkId || "");
-  const method = String(req.body.method || "UNKNOWN");
-  if (!linkId) return res.status(400).json({ ok:false, error:"linkId required" });
-  res.status(501).json({
-    ok:false,
-    error:"No live payment gateway is configured. Register the merchant account and add its approved API credentials before accepting real payments.",
-    linkId,
-    method
-  });
+  try {
+    const linkId = String(req.body.linkId || "").trim();
+    const method = String(req.body.method || "UNKNOWN").trim();
+
+    if (!linkId) {
+      return res.status(400).json({
+        ok: false,
+        error: "linkId required"
+      });
+    }
+
+    if (method === "paymegate" || method === "paymegate_crypto") {
+      const apiKey = String(process.env.PAYMEGATE_API_KEY || "").trim();
+
+      if (!apiKey) {
+        return res.status(503).json({
+          ok: false,
+          error: "Paymegate is not configured on the server."
+        });
+      }
+
+      const database = await db();
+
+      const result = await database.query(
+        "SELECT * FROM payment_links WHERE id=$1 LIMIT 1",
+        [linkId]
+      );
+
+      if (!result.rowCount) {
+        return res.status(404).json({
+          ok: false,
+          error: "Unknown payment link"
+        });
+      }
+
+      const link = result.rows[0];
+
+      if (String(link.status || "").toUpperCase() === "PAID") {
+        return res.status(409).json({
+          ok: false,
+          error: "Payment link is already paid"
+        });
+      }
+
+      const amount = Number(link.amount);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "Invalid payment amount"
+        });
+      }
+
+      const currency = String(link.currency || "USD")
+        .trim()
+        .toUpperCase();
+
+      const paymentMethodsKeys =
+        method === "paymegate_crypto"
+          ? ["crypto"]
+          : ["*"];
+
+      const baseUrl = String(
+        process.env.PUBLIC_BASE_URL ||
+        "https://nevapay-payment-api.onrender.com"
+      ).replace(/\/$/, "");
+
+      const payload = {
+        externalId: linkId,
+        amount: amount.toFixed(2),
+        currency,
+        paymentMethodsKeys,
+        backUrl: `${baseUrl}/pay/${encodeURIComponent(linkId)}`,
+        metadata: {
+          nexapayLinkId: linkId
+        }
+      };
+
+      const gatewayResponse = await fetch(
+        "https://api.paymegate.com/v1/orders",
+        {
+          method: "POST",
+          headers: {
+            "X-API-Key": apiKey,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      const gatewayText = await gatewayResponse.text();
+
+      let gatewayData = {};
+      try {
+        gatewayData = JSON.parse(gatewayText);
+      } catch (_) {}
+
+      if (!gatewayResponse.ok || !gatewayData?.data?.checkoutUrl) {
+        console.error("Paymegate order creation failed:", {
+          status: gatewayResponse.status,
+          body: gatewayText.slice(0, 1000)
+        });
+
+        return res.status(502).json({
+          ok: false,
+          error: "Paymegate checkout could not be created."
+        });
+      }
+
+      const order = gatewayData.data;
+
+      await database.query(
+        "UPDATE payment_links SET provider=$2, provider_reference=$3 WHERE id=$1",
+        [
+          linkId,
+          "PAYMEGATE",
+          String(order.orderUUID || "")
+        ]
+      );
+
+      return res.json({
+        ok: true,
+        provider: "PAYMEGATE",
+        status: order.status || "UNPAID",
+        orderUUID: order.orderUUID,
+        checkoutUrl: order.checkoutUrl
+      });
+    }
+
+    return res.status(501).json({
+      ok: false,
+      error: "No live payment gateway is configured for this method.",
+      linkId,
+      method
+    });
+
+  } catch (error) {
+    console.error("Checkout start error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: "Unable to start checkout."
+    });
+  }
 });
 
 function verifySignature(rawBody, signature) {
