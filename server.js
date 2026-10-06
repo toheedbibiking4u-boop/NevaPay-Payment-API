@@ -769,6 +769,9 @@ app.post("/api/checkout/start", async (req, res) => {
         currency,
         paymentMethodsKeys,
         backUrl: `${baseUrl}/pay/${encodeURIComponent(linkId)}`,
+    customer: {
+      fullName: "NexaPay Customer"
+    },
         metadata: {
           nexapayLinkId: linkId
         }
