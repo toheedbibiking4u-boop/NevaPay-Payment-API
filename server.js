@@ -150,6 +150,8 @@ ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
 <select id="method" onchange="showMethod()">
   <option value="bank_transfer">🏦 Bank Transfer</option>
   <option value="card">💳 Card Payment</option>
+  <option value="paymegate">💳 Paymegate — Card / Crypto</option>
+  <option value="paymegate_crypto">₿ Paymegate — Crypto Only</option>
   <option value="trust_wallet">👛 Trust Wallet / BNB</option>
 </select>
 </label>
@@ -185,6 +187,18 @@ function showMethod(){
     box.innerHTML =
       '<b>💳 Card Payment</b><br>' +
       'You will be redirected to the configured secure card gateway.';
+  }
+
+  if(method === 'paymegate'){
+    box.innerHTML =
+      '<b>💳 Paymegate — Card / Crypto</b><br>' +
+      'Secure hosted checkout. Card and supported crypto methods are provided by Paymegate.';
+  }
+
+  if(method === 'paymegate_crypto'){
+    box.innerHTML =
+      '<b>₿ Paymegate — Crypto Only</b><br>' +
+      'Secure Paymegate crypto checkout.';
   }
 
   if(method === 'trust_wallet'){
