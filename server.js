@@ -160,7 +160,7 @@ ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
   Select a payment method to continue.
 </div>
 
-<button onclick="start()">Continue</button>
+<button id="continueBtn" type="button">Continue</button>
 
 <p>
   <small>
@@ -402,6 +402,17 @@ async function start(){
 }
 
 showMethod();
+
+document.getElementById('continueBtn').addEventListener('click', function(){
+  start().catch(function(e){
+    console.error('NEXAPAY START ERROR', e);
+    const box = document.getElementById('methodInfo');
+    if (box) {
+      box.innerHTML = '<b>Payment error</b><br>' +
+        (e && e.message ? e.message : String(e));
+    }
+  });
+});
 </script></div><script async src="https://atlos.io/packages/app/atlos.js"></script>
 </body></html>`);
   } catch (e) { res.status(500).send("Server error"); }
