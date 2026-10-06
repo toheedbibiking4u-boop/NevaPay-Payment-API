@@ -794,10 +794,10 @@ app.post("/api/checkout/start", async (req, res) => {
       } catch (_) {}
 
       if (!gatewayResponse.ok || !gatewayData?.data?.checkoutUrl) {
-        console.error("Paymegate order creation failed:", {
-          status: gatewayResponse.status,
-          body: gatewayText.slice(0, 1000)
-        });
+        console.error("PAYMEGATE_ERROR " + JSON.stringify({
+      status: gatewayResponse.status,
+      body: gatewayText.slice(0, 1000)
+    }));
 
         return res.status(502).json({
           ok: false,
