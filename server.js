@@ -160,7 +160,7 @@ ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
   Select a payment method to continue.
 </div>
 
-<button onclick="alert('BUTTON CLICKED'); start()">Continue</button>
+<button onclick="start()">Continue</button>
 
 <p>
   <small>
@@ -334,7 +334,7 @@ async function verifyCryptoPayment(){
 }
 
 async function start(){
-  alert('START FUNCTION RUNNING');
+  
   const method =
     document.getElementById('method').value;
 
