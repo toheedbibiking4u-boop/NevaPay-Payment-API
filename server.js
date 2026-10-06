@@ -147,7 +147,7 @@ small{color:#9bb}
 <div class="amount">${escapeHtml(String(p.amount))} ${escapeHtml(p.currency)}</div>
 ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
 <label>Payment method
-<select id="method" onchange="showMethod()">
+<select id="method" onchange="showMethod()" oninput="showMethod()">
   <option value="bank_transfer">🏦 Bank Transfer</option>
   <option value="card">💳 Card Payment</option>
   <option value="paymegate">💳 Paymegate — Card / Crypto</option>
