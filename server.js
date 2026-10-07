@@ -13,7 +13,6 @@ const pool = process.env.DATABASE_URL
 app.use(cors({
   origin: process.env.FRONTEND_URL && process.env.FRONTEND_URL !== "*" ? process.env.FRONTEND_URL : true
 }));
-app.use("/api/atlos/webhook", express.raw({type:"application/json", limit:"1mb"}));
 app.use(express.json({ limit: "100kb" }));
 
 function id(prefix) {
@@ -208,10 +207,6 @@ function showMethod(){
       'Secure Paymegate crypto checkout.';
   }
 
-  if(method === 'trust_wallet'){
-    box.innerHTML =
-      '<b>👛 Trust Wallet / BNB</b><br>' +
-      '<button type="button" onclick="getCryptoQuote()">Get BNB Payment Amount</button>';
   }
 }
 
@@ -345,36 +340,6 @@ async function start(){
   const method =
     document.getElementById('method').value;
 
-  if(method === 'trust_wallet'){
-      const merchantId = '${process.env.ATLOS_MERCHANT_ID || ""}';
-
-      if(!merchantId){
-        alert('ATLOS Merchant ID is not configured.');
-        return;
-      }
-
-      if(typeof atlos === 'undefined'){
-        alert('ATLOS payment widget is still loading. Please try again.');
-        return;
-      }
-
-      try {
-        atlos.Pay({
-          merchantId: merchantId,
-          orderId: '${p.id}',
-          orderAmount: Number('${p.amount}'),
-          orderCurrency: '${p.currency}',
-          postbackUrl: 'https://nevapay-payment-api.onrender.com/api/atlos/webhook',
-          noBuyCrypto: false,
-          language: 'en',
-          theme: 'dark'
-        });
-      } catch(e) {
-        alert('ATLOS ERROR: ' + (e && e.message ? e.message : String(e)));
-        console.error('ATLOS ERROR', e);
-      }
-
-      return;
     }
 
   const r = await fetch('/api/checkout/start',{
@@ -421,7 +386,6 @@ document.getElementById('continueBtn').addEventListener('click', function(){
     }
   });
 });
-</script></div><script async src="https://atlos.io/packages/app/atlos.js"></script>
 </body></html>`);
   } catch (e) { res.status(500).send("Server error"); }
 });
@@ -727,7 +691,7 @@ app.post("/api/checkout/start", async (req, res) => {
       });
     }
 
-    if (method === "paymegate" || method === "paymegate_crypto") {
+    if (["bank_transfer","card","paymegate","paymegate_crypto","trust_wallet"].includes(method)) {
       const apiKey = String(process.env.PAYMEGATE_API_KEY || "").trim();
 
       if (!apiKey) {
@@ -773,10 +737,7 @@ app.post("/api/checkout/start", async (req, res) => {
         .trim()
         .toUpperCase();
 
-      const paymentMethodsKeys =
-        method === "paymegate_crypto"
-          ? ["crypto"]
-          : ["*"];
+      const paymentMethodsKeys = ["*"];
 
       const baseUrl = String(
         process.env.PUBLIC_BASE_URL ||
@@ -1022,178 +983,8 @@ Liquidity transaction : NOT SENT
 app.get("/payment-center",(req,res)=>res.sendFile(require("path").join(__dirname,"payment-center.html")));
 
 
-// XGate webhook receiver
 
-app.post("/api/atlos/webhook", async (req, res) => {
-  try {
-    const crypto = require("crypto");
 
-    const rawBody = Buffer.isBuffer(req.body)
-      ? req.body
-      : Buffer.from(JSON.stringify(req.body || {}));
-
-    const receivedSignature = String(req.get("Signature") || "");
-    const secret = String(process.env.ATLOS_API_SECRET || "");
-
-    if (!secret) {
-      console.error("[ATLOS] ATLOS_API_SECRET is not configured");
-      return res.status(500).json({ ok:false, error:"ATLOS webhook secret not configured" });
-    }
-
-    if (!receivedSignature) {
-      return res.status(401).json({ ok:false, error:"Missing Signature header" });
-    }
-
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(rawBody)
-      .digest("hex");
-
-    const a = Buffer.from(receivedSignature);
-    const b = Buffer.from(expectedSignature);
-
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      console.warn("[ATLOS] Invalid webhook signature");
-      return res.status(401).json({ ok:false, error:"Invalid signature" });
-    }
-
-    const event = JSON.parse(rawBody.toString("utf8"));
-
-    console.log("[ATLOS WEBHOOK]", JSON.stringify({
-      transactionId: event.TransactionId,
-      orderId: event.OrderId,
-      status: event.Status,
-      amount: event.Amount,
-      orderAmount: event.OrderAmount,
-      currency: event.OrderCurrency,
-      asset: event.Asset,
-      blockchain: event.Blockchain,
-      blockchainHash: event.BlockchainHash
-    }));
-
-    if (Number(event.Status) !== 100) {
-      return res.status(200).json({ ok:true, received:true, paid:false });
-    }
-
-    const linkId = String(event.OrderId || "").trim();
-
-    if (!linkId) {
-      return res.status(400).json({ ok:false, error:"OrderId missing" });
-    }
-
-    const database = await db();
-
-    const q = await database.query(
-      "SELECT * FROM payment_links WHERE id=$1 FOR UPDATE",
-      [linkId]
-    );
-
-    if (!q.rows.length) {
-      return res.status(404).json({ ok:false, error:"Payment link not found" });
-    }
-
-    const link = q.rows[0];
-
-    const expectedAmount = Number(link.amount);
-    const paidAmount = Number(event.OrderAmount);
-
-    if (!Number.isFinite(paidAmount) ||
-        Math.abs(expectedAmount - paidAmount) > 0.01) {
-      console.warn("[ATLOS] Amount mismatch", {
-        linkId,
-        expectedAmount,
-        paidAmount
-      });
-
-      return res.status(400).json({
-        ok:false,
-        error:"Payment amount mismatch"
-      });
-    }
-
-    const expectedCurrency = String(link.currency || "").toUpperCase();
-    const paidCurrency = String(event.OrderCurrency || "").toUpperCase();
-
-    if (expectedCurrency && paidCurrency && expectedCurrency !== paidCurrency) {
-      console.warn("[ATLOS] Currency mismatch", {
-        linkId,
-        expectedCurrency,
-        paidCurrency
-      });
-
-      return res.status(400).json({
-        ok:false,
-        error:"Payment currency mismatch"
-      });
-    }
-
-    if (String(link.status).toUpperCase() === "PAID") {
-      return res.status(200).json({
-        ok:true,
-        received:true,
-        alreadyPaid:true
-      });
-    }
-
-    await database.query(
-      `UPDATE payment_links
-       SET status='PAID',
-           provider='ATLOS',
-           provider_reference=$2,
-           paid_at=NOW()
-       WHERE id=$1`,
-      [
-        linkId,
-        String(event.TransactionId || event.BlockchainHash || "")
-      ]
-    );
-
-    console.log("[ATLOS] Payment marked PAID:", linkId);
-
-    return res.status(200).json({
-      ok:true,
-      received:true,
-      paid:true,
-      linkId
-    });
-
-  } catch (e) {
-    console.error("[ATLOS WEBHOOK ERROR]", e.message);
-    return res.status(500).json({
-      ok:false,
-      error:"Webhook processing failed"
-    });
-  }
-});
-
-app.post("/api/xgate/webhook", express.json({type:"application/json"}), async (req, res) => {
-  try {
-    const event = req.body || {};
-
-    console.log("[XGATE WEBHOOK]", JSON.stringify({
-      id: event.id,
-      status: event.status,
-      name: event.name,
-      amount: event.amount,
-      operation: event.operation,
-      externalId: event.externalId
-    }));
-
-    // Acknowledge webhook immediately.
-    // Payment is NOT marked PAID here until the XGate transaction
-    // can be matched and verified.
-    return res.status(200).json({
-      ok: true,
-      received: true
-    });
-  } catch (e) {
-    console.error("[XGATE WEBHOOK ERROR]", e.message);
-    return res.status(200).json({
-      ok: false,
-      received: true
-    });
-  }
-});
 
 app.get("/store", (req,res) => {
   res.sendFile(require("path").join(__dirname,"store.html"));
