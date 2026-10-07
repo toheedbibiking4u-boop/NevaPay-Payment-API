@@ -384,7 +384,7 @@ async function start(){
     },
     body:JSON.stringify({
       linkId:'${encodeURIComponent(p.id)}',
-      method
+      method,
       customerEmail: document.getElementById('customerEmail').value.trim(),
     })
   });
