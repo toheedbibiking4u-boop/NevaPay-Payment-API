@@ -301,7 +301,7 @@ async function verifyCryptoPayment(){
         'Content-Type':'application/json'
       },
       body:JSON.stringify({
-        linkId:${encodeURIComponent(p.id)},
+        linkId:'${encodeURIComponent(p.id)}',
         txHash
       })
     });
@@ -376,7 +376,7 @@ async function start(){
       'Content-Type':'application/json'
     },
     body:JSON.stringify({
-      linkId:${encodeURIComponent(p.id)},
+      linkId:'${encodeURIComponent(p.id)}',
       method
     })
   });
