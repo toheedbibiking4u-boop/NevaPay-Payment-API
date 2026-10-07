@@ -147,6 +147,13 @@ small{color:#9bb}
 <div class="amount">${escapeHtml(String(p.amount))} ${escapeHtml(p.currency)}</div>
 ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ""}
 <label>Payment method
+<label for="customerEmail">Customer email</label>
+<input id="customerEmail"
+       type="email"
+       autocomplete="email"
+       placeholder="you@example.com"
+       required>
+
 <select id="method" onchange="showMethod()" oninput="showMethod()">
   <option value="bank_transfer">🏦 Bank Transfer</option>
   <option value="card">💳 Card Payment</option>
@@ -378,6 +385,7 @@ async function start(){
     body:JSON.stringify({
       linkId:'${encodeURIComponent(p.id)}',
       method
+      customerEmail: document.getElementById('customerEmail').value.trim(),
     })
   });
 
@@ -710,6 +718,7 @@ app.post("/api/checkout/start", async (req, res) => {
   try {
     const linkId = String(req.body.linkId || "").trim();
     const method = String(req.body.method || "UNKNOWN").trim();
+    const customerEmail = String(req.body.customerEmail || "").trim();
 
     if (!linkId) {
       return res.status(400).json({
@@ -781,7 +790,8 @@ app.post("/api/checkout/start", async (req, res) => {
         paymentMethodsKeys,
         backUrl: `${baseUrl}/pay/${encodeURIComponent(linkId)}`,
     customer: {
-      fullName: "NexaPay Customer"
+      fullName: "NexaPay Customer",
+        email: customerEmail
     },
         metadata: {
           nexapayLinkId: linkId
