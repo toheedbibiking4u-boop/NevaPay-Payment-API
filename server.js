@@ -992,32 +992,6 @@ app.get("/store", (req,res) => {
 app.get("/website-info", (req,res)=>res.sendFile(require("path").join(__dirname,"website-info.html")));
 
 
-app.patch("/api/admin/payment-links/:id", async (req, res) => {
-  try {
-    if (!process.env.ADMIN_UPDATE_SECRET ||
-        req.get("x-admin-secret") !== process.env.ADMIN_UPDATE_SECRET) {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
-    }
-
-    const id = String(req.params.id || "").trim();
-    const description = String(req.body?.description || "").slice(0, 240);
-
-    const database = await db();
-    const q = await database.query(
-      "UPDATE payment_links SET description=$1 WHERE id=$2 RETURNING id, amount, currency, description, methods, status",
-      [description, id]
-    );
-
-    if (!q.rowCount) {
-      return res.status(404).json({ ok: false, error: "Payment link not found" });
-    }
-
-    res.json({ ok: true, paymentLink: q.rows[0] });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
 app.listen(PORT, "0.0.0.0", () => console.log(`NexaPay API listening on ${PORT}`));
 }).catch(err => {
   console.error(err);
